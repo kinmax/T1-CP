@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <omp.h>
 
 int main();
 char ch_cap(char ch);
@@ -102,9 +103,86 @@ int main()
 
   paths = 0;
 
-  for (;;)
+  int permutations;
+  for (i = 1; i <= n; ++i) {
+    permutations *= i;
+  }
+
+  for(rank = 0; rank < permutations; rank++)
   {
-    perm0_next3(n, p, &more, &rank);
+    //INICIO perm0_next3(n, p, &more, &rank);
+    int m2;
+    int n2;
+    int q;
+    int s;
+    int t;
+    int temp;
+
+    if (!(more))
+    {
+      for (i = 0; i < n; i++)
+      {
+        p[i] = i;
+      }
+      more = 1;
+      rank = 1;
+    }
+    else
+    {
+      n2 = n;
+      m2 = rank;
+      s = n;
+
+      for (;;)
+      {
+        q = m2 % n2;
+        t = m2 % (2 * n2);
+
+        if (q != 0)
+        {
+          break;
+        }
+
+        if (t == 0)
+        {
+          s = s - 1;
+        }
+
+        m2 = m2 / n2;
+        n2 = n2 - 1;
+
+        if (n2 == 0)
+        {
+          for (i = 0; i < n; i++)
+          {
+            p[i] = i;
+          }
+          more = 0;
+          rank = 1;
+          break;
+        }
+      }
+
+      if (n2 != 0)
+      {
+        if (q == t)
+        {
+          s = s - q;
+        }
+        else
+        {
+          s = s + q - n2;
+        }
+
+        temp = p[s - 1];
+        p[s - 1] = p[s];
+        p[s] = temp;
+
+        rank = rank + 1;
+      }
+    }
+
+    //FIM perm0_next3(n, p, &more, &rank);
 
     if (!more)
     {
