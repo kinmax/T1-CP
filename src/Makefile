@@ -3,7 +3,7 @@ CPPFLAGS = -I/usr/local/opt/llvm/include -fopenmp
 LDFLAGS = -L/usr/local/opt/llvm/lib
 
 all:
-	gcc -o salesman salesman.c
+	gcc -o salesman salesman.c -fopenmp -lm
 
 clang: salesman.c
 	$(CPP) $(CPPFLAGS) $^ -o salesman $(LDFLAGS)
