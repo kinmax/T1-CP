@@ -56,7 +56,7 @@ int main()
   int more;
   int n;
   int *p;
-  int *p_min;
+  int **p_min;
   int paths;
   int rank;
   double total;
@@ -98,125 +98,174 @@ int main()
   p = (int *)malloc(n * sizeof(int));
   more = 0;
   rank = 0;
+  omp_set_num_threads(1);
 
-  p_min = (int *)malloc(n * sizeof(int));
+  p_min = (int **)malloc(omp_get_num_threads() * sizeof(int *));
+  for(i = 0; i < omp_get_num_threads(); i++)
+  {
+    p_min[i] = (int *)malloc(n * sizeof(int));
+  }
+
+  int *p_min_min = (int *)malloc(n * sizeof(int));
 
   paths = 0;
+  int shifter = 0;
 
   int permutations;
   for (i = 1; i <= n; ++i) {
     permutations *= i;
   }
-
-  for(;;)
+  int k;
+  printf("%d", omp_get_num_threads());
+  #pragma omp parallel default(none) private(n, p, shifter, i, rank, total, i1, i2, distance, more) reduction(+:paths) reduction(min:total_min) reduction(max:total_max) reduction(+:total_ave) shared(p_min)
+  #pragma omp for schedule(static)
+  for(k = 0; k < n; k++) 
   {
-    //INICIO perm0_next3(n, p, &more, &rank);
-    int m2;
-    int n2;
-    int q;
-    int s;
-    int t;
-    int temp;
+    p[n-1] = k;
 
-    if (!(more))
+    for(;;)
     {
-      for (i = 0; i < n; i++)
+      //INICIO perm0_next3(n, p, &more, &rank);
+      int m2;
+      int n2;
+      int q;
+      int s;
+      int t;
+      int temp;
+      shifter = 0;
+
+      if (!(more))
       {
-        p[i] = i;
+        for (i = 0; i < (n-1); i++)
+        {
+          if(i == k) shifter = 1;
+          p[i] = i+shifter;
+        }
+        more = 1;
+        rank = 1;
       }
-      more = 1;
-      rank = 1;
-    }
-    else
-    {
-      n2 = n;
-      m2 = rank;
-      s = n;
-
-      for (;;)
+      else
       {
-        q = m2 % n2;
-        t = m2 % (2 * n2);
+        n2 = n-1;
+        m2 = rank;
+        s = n-1;
 
-        if (q != 0)
+        for (;;)
         {
-          break;
+          q = (m2 % n2);
+          t = m2 % (2 * n2);
+
+          if (q != 0)
+          {
+            break;
+          }
+
+          if (t == 0)
+          {
+            s = s - 1;
+          }
+
+          m2 = m2 / n2;
+          n2 = n2 - 1;
+
+          if (n2 == 0)
+          {
+            for (i = 0; i < (n-1); i++)
+            {
+              if(i == k) shifter = 1;
+              p[i] = i+shifter;
+            }
+            more = 0;
+            rank = 1;
+            break;
+          }
         }
 
-        if (t == 0)
+        if (n2 != 0)
         {
-          s = s - 1;
+          if (q == t)
+          {
+            s = s - q;
+          }
+          else
+          {
+            s = s + q - n2;
+          }
+
+          temp = p[s - 1];
+          p[s - 1] = p[s];
+          p[s] = temp;
+
+          rank = rank + 1;
         }
+      }
 
-        m2 = m2 / n2;
-        n2 = n2 - 1;
+      //FIM perm0_next3(n, p, &more, &rank);
 
-        if (n2 == 0)
+      if (!more)
+      {
+        break;
+      }
+
+      paths = paths + 1;
+
+      total = 0.0;
+      i1 = n - 1;
+      for (i2 = 0; i2 < n; i2++)
+      {
+        total = total + distance[p[i1] + p[i2] * n];
+        i1 = i2;
+      }
+
+      total_ave = total_ave + total;
+
+      if (total_max < total)
+      {
+        total_max = total;
+      }
+
+      if (total < total_min)
+      {
+        total_min = total;
+        #pragma omp critical
         {
+          printf("P[i]\n");
           for (i = 0; i < n; i++)
           {
-            p[i] = i;
+            printf("%d ", p[i]);
           }
-          more = 0;
-          rank = 1;
-          break;
+          printf("\n$$$$$$$$$$$$$$\n");
         }
-      }
-
-      if (n2 != 0)
-      {
-        if (q == t)
+        for (i = 0; i < n; i++)
         {
-          s = s - q;
+          p_min[0][i] = p[i];
         }
-        else
-        {
-          s = s + q - n2;
-        }
-
-        temp = p[s - 1];
-        p[s - 1] = p[s];
-        p[s] = temp;
-
-        rank = rank + 1;
-      }
-    }
-
-    //FIM perm0_next3(n, p, &more, &rank);
-
-    if (!more)
-    {
-      break;
-    }
-
-    paths = paths + 1;
-
-    total = 0.0;
-    i1 = n - 1;
-    for (i2 = 0; i2 < n; i2++)
-    {
-      total = total + distance[p[i1] + p[i2] * n];
-      i1 = i2;
-    }
-
-    total_ave = total_ave + total;
-
-    if (total_max < total)
-    {
-      total_max = total;
-    }
-
-    if (total < total_min)
-    {
-      total_min = total;
-      for (i = 0; i < n; i++)
-      {
-        p_min[i] = p[i];
       }
     }
   }
-
   total_ave = total_ave / (double)(paths);
+
+  printf("%d\n\n", i2);
+  printf("PMIN\n\n\n");
+  for(i = 0; i < omp_get_num_threads(); i++)
+  {
+    int j;
+    for(j = 0; j < n; j++)
+    {
+      printf("%d ", p_min[i][j]);
+    }
+    printf("\n");
+  }
+  printf("%%%%%%%%%%%%%%%%%%%%%%\n\n");
+
+  p_min_min = p_min[0];
+
+  printf("P_MIN_MIN\n");
+  for(i = 0; i < n; i++)
+  {
+    printf("%d ", p_min_min[i]);
+  }
+  printf("\n&&&&&&&&&&&&&&&&&&&&&\n");
 
   printf("\n");
   printf("  Itinerary:\n");
@@ -225,8 +274,9 @@ int main()
   i1 = n - 1;
   for (i2 = 0; i2 < n; i2++)
   {
+    printf("KJShDKJASHDKJAsd\n%d\n", i2);
     printf("  %4d    %2d  %2d  %g\n",
-           i2, p_min[i1], p_min[i2], distance[p_min[i1] + p_min[i2] * n]);
+           i2, p_min_min[i1], p_min_min[i2], distance[p_min_min[i1] + p_min_min[i2] * n]);
     i1 = i2;
   }
   printf("\n");
