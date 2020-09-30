@@ -12,7 +12,7 @@
 
 /*---------------------------- DEFINES ---------------------------*/
 
-#define NUM_CITIES 7
+#define NUM_CITIES 16
 #define NUM_THREADS 1
 
 /*-------------------------- STRUCTURES --------------------------*/
@@ -39,7 +39,7 @@ CITY cities[NUM_CITIES] = {
                            {"Freiburg" , {-2, -4}},
                            {"Dresden"  , { 8,  5}},
                            {"Berlin"   , { 8,  8}}
-                           /*{"Hannover" , { 1,  8}},
+                           {"Hannover" , { 1,  8}},
                            {"Hamburg"  , { 2, 10}},
                            {"Stuttgart", { 1, -1}},
                            {"Ulm",       { 2, -2}},
@@ -47,7 +47,7 @@ CITY cities[NUM_CITIES] = {
                            {"Winden",    { 10,  7}},
                            {"Goslar",    { 2,  3}},
                            {"Dusseldorf",{ 18,  1}},
-                           {"Heidelberg",{ 4,  11}},*/
+                           {"Heidelberg",{ 4,  11}},
                           };          
                           
 SOLUTION final_solution[NUM_CITIES];    /* Final Order of the Cities  */                    
