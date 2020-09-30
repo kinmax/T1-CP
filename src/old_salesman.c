@@ -8,12 +8,10 @@
 #include "math.h"
 #include "time.h"
 #include "stdio.h"
-#include <omp.h>
 
 /*---------------------------- DEFINES ---------------------------*/
 
-#define NUM_CITIES 16
-#define NUM_THREADS 1
+#define NUM_CITIES 11
 
 /*-------------------------- STRUCTURES --------------------------*/
 
@@ -32,7 +30,7 @@ typedef int SOLUTION[NUM_CITIES];
 /*--------------------------- VARIABLES --------------------------*/
 
 CITY cities[NUM_CITIES] = {
-                           {"Karlsruhe", { 0,  0}},
+                           /*{"Karlsruhe", { 0,  0}},*/
                            {"Koeln"    , {-2,  5}},
                            {"Frankfurt", { 0,  3}},
 		                       {"Muenchen" , { 4, -4}},
@@ -43,14 +41,11 @@ CITY cities[NUM_CITIES] = {
                            {"Hamburg"  , { 2, 10}},
                            {"Stuttgart", { 1, -1}},
                            {"Ulm",       { 2, -2}},
-                           {"Nurenberg", { 4,  2}},
-                           {"Winden",    { 10,  7}},
-                           {"Goslar",    { 2,  3}},
-                           {"Dusseldorf",{ 18,  1}},
-                           {"Heidelberg",{ 4,  11}},
+                           {"Nurenberg", { 4,  2}}
                           };          
                           
-SOLUTION final_solution[NUM_THREADS];    /* Final Order of the Cities  */                    
+SOLUTION final_solution;    /* Final Order of the Cities  */ 
+double best_result = 1000L; /* Final cost (Global Minima) */                    
                          
 /*--------------------------- PROTOTYPES -------------------------*/
 
@@ -59,7 +54,7 @@ double calc_total_dist( SOLUTION solution );
 unsigned int fat ( int number ); 
 void rotate_left ( int *solution, int position );
 
-void ger_solution ( SOLUTION solution, int n, int th_id, double *best_result );
+void ger_solution ( SOLUTION solution, int n );
 void heu_mais_perto ( void );
                              
 /*----------------------------------------------------------------*
@@ -153,7 +148,7 @@ void rotate_left ( int *solution, int position )
 |                           ger_solution                          |
 *-----------------------------------------------------------------*/
 
-void ger_solution ( SOLUTION solution, int n, int th_id, double *best_result)
+void ger_solution ( SOLUTION solution, int n )
 {
   /* rotina recursiva para o calculo da distancia de TODAS as solucoes */
   /* posiveis para o problema e escolha da menor (minimo global)       */
@@ -165,19 +160,19 @@ void ger_solution ( SOLUTION solution, int n, int th_id, double *best_result)
       {
       rotate_left(&solution[0],NUM_CITIES-n);
       if ( n != 2 )
-         ger_solution(solution, n-1, th_id, best_result);
+         ger_solution(solution, n-1);
       else
          {
          /* calculo e comparo */
          
          custo = calc_total_dist(solution);
          
-         if ( custo < *best_result )
+         if ( custo < best_result )
             {
-            *best_result = custo;
+            best_result = custo;
             
             for ( j=0 ; j < NUM_CITIES ; j++ )
-                final_solution[th_id][j] = solution[j];
+                final_solution[j] = solution[j];
             }
          }      
       }
@@ -185,13 +180,80 @@ void ger_solution ( SOLUTION solution, int n, int th_id, double *best_result)
 } /* ger_solution */
 
 
-void swap(int arr[], int i, int j)
+/*----------------------------------------------------------------*
+|                          heu_mais_perto                         |
+*-----------------------------------------------------------------*/
+
+void heu_mais_perto (void)
 {
-  int temp = arr[i];
-  arr[i] = arr[j];
-  arr[j] = temp;
-  return;
-}
+  /* rotina heuristica para a solucao aproximada do problema   */
+  /* a partir da cidade inicial vou visitando sempre a cidade  */
+  /* mais proxima ate esgotar as possibilidades; entao retorno */
+  
+  int    proxima_cidade, pos_solucao, j;
+  double distancia, menor_distancia, custo_total;
+  COORD  atual;
+  SOLUTION visitadas;
+  
+  /* inicializo */
+  
+  pos_solucao = 1;  /* 0 ja eh Karlsruhe */
+  final_solution[0] = 0;
+  
+  visitadas[0] = 1;
+  for ( j=1 ; j < NUM_CITIES ; j++ )
+      visitadas[j] = 0;
+      
+  /* posicao atual eh Karlsruhe */
+  
+  atual.x = cities[0].coord.x;
+  atual.y = cities[0].coord.y;
+  
+  /* acho a cidade mais perto para cada posicao do vetor solucao */
+  
+  for ( pos_solucao = 1 ; pos_solucao < NUM_CITIES ; pos_solucao++ )
+      {
+      /* procuro cidade mais perto do ponto atual,   */
+      /* que ainda nao tenha sido visitada           */
+      
+      menor_distancia = 1000;
+      
+      for ( j = 1 ; j < NUM_CITIES ; j++ )
+          {
+          /* se cidade nao foi visitada ainda */
+          
+          if ( visitadas[j] == 0 )
+             {
+             /* calculo distancia para posicao atual */
+             
+             distancia = calc_dist( atual, cities[j].coord);
+          
+             /* se distancia menor, marco */
+             
+             if ( distancia < menor_distancia )
+                {
+                menor_distancia = distancia;
+                proxima_cidade = j;
+                }
+             }
+          }  
+      /* atualizo atual, vetor solucao e vetor visitadas */
+      
+      atual.x = cities[proxima_cidade].coord.x;
+      atual.y = cities[proxima_cidade].coord.y;
+      final_solution[pos_solucao] = proxima_cidade; 
+      visitadas[proxima_cidade] = 1;
+      }
+      
+  /* calculo custo da solucao encontrada */
+  
+  custo_total = calc_total_dist(final_solution);
+  
+  /* atualizo variavel global de resultado (custo) */
+  
+  best_result = custo_total;    
+            
+} /* heu_mais_perto */
 
 /*----------------------------------------------------------------*
 |                               main                              |
@@ -199,67 +261,43 @@ void swap(int arr[], int i, int j)
                                 
 void main ( void )
 {
-  SOLUTION initial_solution[NUM_THREADS];
+  SOLUTION initial_solution = {3, 1, 2, 0, 4, 5, 6, 7, 8, 9, 10};
   double test_result = 0L;
-  int i, j;
+  int i;
   unsigned int number_of_solutions = 0;
-  double t1, t2;
+  time_t t1, t2;
   
   /* disparo relogio */
   
-  t1 = omp_get_wtime();
+  time(&t1);
      
   number_of_solutions = fat(NUM_CITIES-1);
-
-  double best_result = 1000L; /* Final cost (Global Minima) */ 
   
   printf("\nNumero de solucoes = %u\n", number_of_solutions);
-
-  for(i = 0; i < NUM_THREADS; i++)
-  {
-    for(j = 0; j < NUM_CITIES; j++)
-    {
-      initial_solution[i][j] = j;
-    }
-  }
   
   /* gero todas as solu��es, calculo e comparo */
-  omp_set_num_threads(NUM_THREADS);
-  #pragma omp parallel for default(none) schedule(static) shared(initial_solution) reduction(min:best_result)
-  for(i = 0; i < NUM_CITIES; i++)
-  {
-    swap(initial_solution[omp_get_thread_num()], 0, i);
-    ger_solution(initial_solution[omp_get_thread_num()], NUM_CITIES-1, omp_get_thread_num(), &best_result);
-  }
+  
+  ger_solution(initial_solution, NUM_CITIES-1);
+  
+  //heu_mais_perto();
   
   /* mostro resultado */
           		  
   printf("\nMinimo Global %f\n", best_result );
   
   printf("\nOrdem das cidades a visitar:\n\n");
-  int melhor = 0;
-  for(j = 0; j < NUM_THREADS; j++) 
-  {
-    if (calc_total_dist(final_solution[j]) <= best_result)
-    {
-      melhor = j;
-      break;
-    }
-  }
-
   for ( i = 0 ; i < NUM_CITIES ; i++ )
-      printf("%s -> ",cities[final_solution[melhor][i]].city);
-  printf("%s",cities[final_solution[melhor][0]].city);
-  
+      printf("%s -> ",cities[final_solution[i]].city);
+  printf("%s",cities[0].city);
   
   /* paro relogio */
   
-  t2 = omp_get_wtime();
+  time(&t2);
   
   /* mostro tempo que passou */
   
-  printf("\n\nSe passaram %lf segundos apos o inicio do programa.\n",
-           t2-t1);
+  printf("\n\nSe passaram %.0lf segundos apos o inicio do programa.\n",
+           difftime(t2, t1));
 }                                
                                 
                         
