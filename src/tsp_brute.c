@@ -108,7 +108,7 @@ int main()
     permutations *= i;
   }
 
-  for(rank = 0; rank < permutations; rank++)
+  for(;;)
   {
     //INICIO perm0_next3(n, p, &more, &rank);
     int m2;
