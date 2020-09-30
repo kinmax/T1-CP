@@ -3,10 +3,10 @@ CPPFLAGS = -I/usr/local/opt/llvm/include -fopenmp
 LDFLAGS = -L/usr/local/opt/llvm/lib
 
 all:
-	gcc -o tsp_brute tsp_brute.c
+	gcc -o salesman salesman.c
 
-clang: tsp_brute.c
-	$(CPP) $(CPPFLAGS) $^ -o tsp_brute $(LDFLAGS)
+clang: salesman.c
+	$(CPP) $(CPPFLAGS) $^ -o salesman $(LDFLAGS)
 
 clean:
 	rm *.exe *.o
