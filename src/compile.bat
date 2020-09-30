@@ -1,0 +1,1 @@
+gcc -o salesman.exe -fopenmp salesman.c
