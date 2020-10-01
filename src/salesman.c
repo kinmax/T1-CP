@@ -12,8 +12,8 @@
 
 /*---------------------------- DEFINES ---------------------------*/
 
-#define NUM_CITIES 16
-#define NUM_THREADS 1
+#define NUM_CITIES 12
+#define NUM_THREADS 8
 
 /*-------------------------- STRUCTURES --------------------------*/
 
@@ -43,11 +43,11 @@ CITY cities[NUM_CITIES] = {
                            {"Hamburg"  , { 2, 10}},
                            {"Stuttgart", { 1, -1}},
                            {"Ulm",       { 2, -2}},
-                           {"Nurenberg", { 4,  2}},
-                           {"Winden",    { 10,  7}},
+                           {"Nurenberg", { 4,  2}}
+                           /*{"Winden",    { 10,  7}},
                            {"Goslar",    { 2,  3}},
                            {"Dusseldorf",{ 18,  1}},
-                           {"Heidelberg",{ 4,  11}}
+                           {"Heidelberg",{ 4,  11}}*/
                           };          
                           
 SOLUTION final_solution[NUM_CITIES];    /* Final Order of the Cities  */                    
@@ -223,7 +223,7 @@ void main ( void )
     }
   }
   
-  /* gero todas as solu��es, calculo e comparo */
+  /* gero todas as solucoes, calculo e comparo */
   omp_set_num_threads(NUM_THREADS);
   #pragma omp parallel for default(none) schedule(static) shared(initial_solution)
   for(i = 0; i < NUM_CITIES; i++)
